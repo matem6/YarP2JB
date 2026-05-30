@@ -127,10 +127,6 @@ loader's TCP protocol for you.
 - **One run per boot.** The triple-free is a point of no return; a
   failed or completed run needs the save reloaded (and, if the game
   was torn down, a fresh launch).
-- **The ELF loader lives inside the game process.** Closing the game
-  is safe for the kernel but tears down the loader and anything you
-  sent to `:9021`. Keep the game open until your persistent payload has
-  applied.
 
 ---
 
