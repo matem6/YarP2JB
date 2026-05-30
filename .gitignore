@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Large binaries -> upload as GitHub Release assets, not in the repo
+# (GitHub blocks files > 100 MB)
+*.7z
+*.zip
+*.img
+*.bin
