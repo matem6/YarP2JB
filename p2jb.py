@@ -9,7 +9,7 @@ from utils.ref import get_ref_addr
 from utils.unsafe import readuint, writeuint
 _SCREEN_KW = ("***", "COMPLETE", "LEAK PHASE", "spawned", "leak ~",
               "LEAK DONE", "DEBUG MENU", "FATAL", "EXCEPTION",
-              "please retry")
+              "please retry", "ELF loader", "please wait")
 
 
 def _log_noop(*_a, **_k):
@@ -1183,26 +1183,39 @@ def stage0_leak(S, target_total):
             _consumed = tot_q - _buf
             if _consumed < 0:
                 _consumed = 0
-            _denom = tot_n - _buf
-            if _denom < 1:
-                _denom = 1
+            _denom = tot_n if tot_n > 0 else 1
             _pct = 100.0 * _consumed / _denom
-            if _pct > 100.0:
-                _pct = 100.0
+            if _pct > 99.0:
+                _pct = 99.0
             el = time.time() - t0
             log("[stage0] leak ~%.0f%% elapsed %dm%02ds" %
                 (_pct, int(el // 60), int(el % 60)))
             _last_log[0] = time.time()
         nanosleep_ms(200)
-    log("[stage0] feed complete, waiting for drain...")
+    log("[stage0] leak ~88%% (wake-bytes queued, finishing backlog...)")
 
+    _drain_t0 = time.time()
+    _backlog_kq = float(NW * 65536 * U)
+    _drain_eta = _backlog_kq / _eta_rate if _eta_rate > 0 else 1.0
+    if _drain_eta < 1.0:
+        _drain_eta = 1.0
+    _last_drain_log = [time.time()]
     for wk in workers:
         while True:
             wk["finished"][0:8] = struct.pack("<Q", 0)
             yieldable_sleep_ms(1500)
             if struct.unpack("<Q", bytes(wk["finished"][0:8]))[0] == 0:
                 break
-    log("[stage0] drain complete, flipping pivot -> EXIT + final wake")
+            if time.time() - _last_drain_log[0] > 30.0:
+                _frac = (time.time() - _drain_t0) / _drain_eta
+                if _frac > 1.0:
+                    _frac = 1.0
+                _dp = 88.0 + 11.0 * _frac
+                _el = time.time() - t0
+                log("[stage0] leak ~%.0f%% elapsed %dm%02ds" %
+                    (_dp, int(_el // 60), int(_el % 60)))
+                _last_drain_log[0] = time.time()
+    log("[stage0] leak ~100%% - drain complete, finalizing")
 
     for wk in workers:
         wk["pivot_cell"][0x38:0x40] = struct.pack(
@@ -3309,7 +3322,10 @@ def do_finalize(S):
     sc.send_notification(P2JB_VERSION + "\nJailbroken")
 
     if LOAD_ELF_INPLACE_ENABLED:
-        log("[p2jb] loading ELF payload...")
+        log("[p2jb] *** loading ELF loader, this can take a bit - please "
+            "wait... ***")
+        sc.send_notification(P2JB_VERSION +
+                             "\nLoading ELF loader, please wait...")
         try:
             stage10_load_elf_inplace(S)
         except Exception as _e:
