@@ -2212,7 +2212,7 @@ def setup_gpu_dma(S):
     log("[gpu_dma] pmap_store=0x%x pml4=0x%x cr3=0x%x dmap_base=0x%x" %
         (pmap_store, pml4, cr3, dmap_base))
 
-    if (cr3 & 0xFFF) != 0 or cr3 == 0 or cr3 >= 0x800000000:
+    if (cr3 & 0xFFF) != 0 or cr3 == 0 or cr3 >= 0x10000000000:
         raise Exception("setup_gpu_dma: cr3 sanity failed 0x%x" % cr3)
     if (dmap_base >> 48) != 0xFFFF or (dmap_base & 0xFFF) != 0:
         raise Exception("setup_gpu_dma: dmap_base sanity failed 0x%x" % dmap_base)
